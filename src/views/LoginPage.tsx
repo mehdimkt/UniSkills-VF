@@ -45,7 +45,7 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState('');
   const [selectedGender, setSelectedGender] = useState<'male' | 'female'>('male');
   const [selectedSemester, setSelectedSemester] = useState('');
-
+  
   // État pour afficher/masquer les mots de passe
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -69,7 +69,7 @@ export default function LoginPage() {
 
   const cities = Object.keys(schoolsByCity);
   const filteredSchools = schoolsByCity[selectedCity] || [];
-  const filteredSkills = availableSkills.filter(skill =>
+  const filteredSkills = availableSkills.filter(skill => 
     skill.toLowerCase().includes(skillSearch.toLowerCase())
   );
 
@@ -99,7 +99,7 @@ export default function LoginPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail) return;
-
+    
     setIsLoading(true);
     const { error } = await resetPassword(resetEmail);
     if (error) {
@@ -113,32 +113,32 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
+    
     const email = (e.target as any).email?.value;
     const password = (e.target as any).password?.value;
-
+    
     if (!isAcademicEmail(email)) {
       alert('Veuillez utiliser votre email académique pour vous connecter.');
       setIsLoading(false);
       return;
     }
-
+    
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
+    
     if (error) {
       console.error('Login error:', error);
       alert('Erreur: ' + error.message);
       setIsLoading(false);
       return;
     }
-
+    
     if (data.user) {
       const { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single();
-
+      
       if (profile) {
         login({
           id: profile.id,
@@ -155,14 +155,14 @@ export default function LoginPage() {
         }, data.session?.access_token || '');
       }
     }
-
+    
     setIsLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
+    
     const form = e.target as any;
     const firstName = form.firstName?.value;
     const lastName = form.lastName?.value;
@@ -172,19 +172,19 @@ export default function LoginPage() {
     const city = selectedCity;
     const university = selectedSchool;
     const level = form.level?.value;
-
+    
     if (password !== confirmPassword) {
       alert('Les mots de passe ne correspondent pas');
       setIsLoading(false);
       return;
     }
-
+    
     if (!isAcademicEmail(email)) {
       alert('Veuillez utiliser votre email académique (.ac.ma, .ma, .org)');
       setIsLoading(false);
       return;
     }
-
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -202,14 +202,14 @@ export default function LoginPage() {
         }
       }
     });
-
+    
     if (error) {
       console.error('Signup error:', error);
       alert('Erreur: ' + error.message);
       setIsLoading(false);
       return;
     }
-
+    
     if (data.user) {
       await supabase.from('users').insert([{
         id: data.user.id,
@@ -225,14 +225,14 @@ export default function LoginPage() {
         skills: selectedSkills,
         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}${lastName}&gender=${selectedGender}`
       }]);
-
+      
       alert('Inscription réussie ! Vous pouvez maintenant vous connecter.');
       setIsLogin(true);
       setSelectedSkills([]);
       setSelectedGender('male');
       setSelectedSemester('');
     }
-
+    
     setIsLoading(false);
   };
 
@@ -245,7 +245,7 @@ export default function LoginPage() {
             <h2 className="text-2xl font-black text-slate-900">Mot de passe oublié</h2>
             <p className="text-sm text-slate-500 mt-2">Entrez votre email pour réinitialiser votre mot de passe</p>
           </div>
-
+          
           {resetSent ? (
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -303,7 +303,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 auth-gradient text-white p-12 flex-col justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg">
-            <img src="/logo.png" alt="Uniskills" className="w-full h-full object-cover" />
+            <img src="/logo.svg" alt="Uniskills" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tighter">UNISKILLS</h1>
         </div>
@@ -331,13 +331,13 @@ export default function LoginPage() {
           </div>
 
           <div className="flex p-1 bg-slate-100 rounded-lg max-w-md mx-auto">
-            <button
+            <button 
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${isLogin ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Connexion
             </button>
-            <button
+            <button 
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${!isLogin ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'}`}
             >
@@ -346,7 +346,7 @@ export default function LoginPage() {
           </div>
 
           <AnimatePresence mode="wait">
-            <motion.form
+            <motion.form 
               key={isLogin ? 'login' : 'register'}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -381,8 +381,9 @@ export default function LoginPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedGender('male')}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all ${selectedGender === 'male' ? 'bg-primary text-white' : 'text-slate-500'
-                            }`}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all ${
+                            selectedGender === 'male' ? 'bg-primary text-white' : 'text-slate-500'
+                          }`}
                         >
                           <User className="w-4 h-4" />
                           Homme
@@ -390,8 +391,9 @@ export default function LoginPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedGender('female')}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all ${selectedGender === 'female' ? 'bg-primary text-white' : 'text-slate-500'
-                            }`}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all ${
+                            selectedGender === 'female' ? 'bg-primary text-white' : 'text-slate-500'
+                          }`}
                         >
                           <Users className="w-4 h-4" />
                           Femme
@@ -417,7 +419,7 @@ export default function LoginPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Ville</label>
-                      <select
+                      <select 
                         value={selectedCity}
                         onChange={handleCityChange}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none"
@@ -428,7 +430,7 @@ export default function LoginPage() {
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Établissement</label>
-                      <select
+                      <select 
                         value={selectedSchool}
                         onChange={(e) => setSelectedSchool(e.target.value)}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none"
@@ -452,13 +454,13 @@ export default function LoginPage() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Email Universitaire *</label>
                 <div className="relative">
-                  <input
-                    type="email"
-                    name="email"
+                  <input 
+                    type="email" 
+                    name="email" 
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                    placeholder="Ex: nom.prenom@um5.ac.ma"
-                    required
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" 
+                    placeholder="Ex: nom.prenom@um5.ac.ma" 
+                    required 
                   />
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 </div>
@@ -512,11 +514,11 @@ export default function LoginPage() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Mot de passe</label>
                 <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                    required
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    name="password" 
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" 
+                    required 
                   />
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <button
@@ -533,11 +535,11 @@ export default function LoginPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Confirmation</label>
                   <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      name="confirmPassword"
-                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                      required
+                    <input 
+                      type={showConfirmPassword ? "text" : "password"} 
+                      name="confirmPassword" 
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" 
+                      required 
                     />
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <button
@@ -563,8 +565,8 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <button
-                type="submit"
+              <button 
+                type="submit" 
                 disabled={isLoading}
                 className="w-full py-4 bg-primary text-white font-bold rounded-xl hover:opacity-95 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2 group active:scale-[0.98] disabled:opacity-70"
               >
