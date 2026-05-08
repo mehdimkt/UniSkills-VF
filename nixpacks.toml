@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["nodejs_20", "python311"]
 
 [phases.install]
-cmds = ["npm install --include=dev"]
+cmds = ["npm install", "pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["npm run build"]
 
 [start]
-cmd = "npm run start"
+cmd = "node server.js"
