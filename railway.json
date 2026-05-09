@@ -7,4 +7,8 @@
     "startCommand": "npm run start",
     "healthcheckPath": "/health"
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b641e086b05dd9f877da67a0b9c1e6b34cfc1040
