@@ -98,9 +98,9 @@ export default function MyRequests({ onNavigate, initialData }: { onNavigate?: (
         deadline: item.deadline || 'À définir',
         date: item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'),
         image: item.image_url || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400',
-        status: item.status === 'open' ? 'Ouverte' : 
+        status: (item.status === 'open' ? 'Ouverte' : 
                 item.status === 'negotiating' ? 'En négociation' : 
-                item.status === 'closed' ? 'Fermée' : 'Expirée',
+                item.status === 'closed' ? 'Fermée' : 'Expirée') as RequestStatus,
         files: item.files ? JSON.parse(item.files) : [],
         proposalsCount: item.proposals?.[0]?.count || 0,
         delivery_hours: item.delivery_hours || 168,
@@ -485,6 +485,15 @@ export default function MyRequests({ onNavigate, initialData }: { onNavigate?: (
                     </div>
 
                     <div className="flex gap-2">
+                      {(req.status === 'Fermée' || req.status === 'Expirée') && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); updateStatus(req.id, 'Ouverte'); }}
+                          className="p-2.5 bg-green-50 text-green-600 hover:bg-green-500 hover:text-white rounded-xl transition-all"
+                          title="Réouvrir la demande"
+                        >
+                          <RotateCw className="w-4 h-4" />
+                        </button>
+                      )}
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleOpenEdit(req); }}
                         className="p-2.5 bg-slate-100 text-slate-600 hover:text-primary rounded-xl transition-all"
@@ -863,7 +872,7 @@ export default function MyRequests({ onNavigate, initialData }: { onNavigate?: (
                     <Timer className="w-5 h-5 text-primary mx-auto mb-1" />
                     <p className="text-[9px] font-black text-slate-400">Livraison</p>
                     <p className="text-sm font-black text-slate-900">
-                      {selectedRequest.delivery_hours}h ({Math.floor(selectedRequest.delivery_hours / 24)}j)
+                      {selectedRequest.delivery_hours || 0}h ({Math.floor((selectedRequest.delivery_hours || 0) / 24)}j)
                     </p>
                   </div>
                   <div className="text-center">
@@ -907,7 +916,15 @@ export default function MyRequests({ onNavigate, initialData }: { onNavigate?: (
                   </div>
                 )}
 
-                <div className="flex gap-3 mt-6">
+                 <div className="flex gap-3 mt-6">
+                  {(selectedRequest.status === 'Fermée' || selectedRequest.status === 'Expirée') && (
+                    <button 
+                      onClick={() => { updateStatus(selectedRequest.id, 'Ouverte'); setSelectedRequest(null); }}
+                      className="flex-1 py-3 bg-green-500 text-white font-black rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
+                    >
+                      <RotateCw className="w-4 h-4" /> Réouvrir
+                    </button>
+                  )}
                   <button 
                     onClick={() => { handleOpenEdit(selectedRequest); setSelectedRequest(null); }}
                     className="flex-1 py-3 bg-slate-900 text-white font-black rounded-xl flex items-center justify-center gap-2"

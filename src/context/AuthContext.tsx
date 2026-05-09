@@ -8,11 +8,10 @@ interface User {
   full_name?: string;
   name?: string;
   email: string;
-  role: 'aideur' | 'demandeur';
+  role: 'aideur' | 'demandeur' | 'admin';
   university?: string;
   school?: string;
   city?: string;
-  semester?: string;
   level?: string;
   gender?: 'male' | 'female';
   avatar_url?: string;
@@ -21,11 +20,13 @@ interface User {
   rating?: number;
   skills?: string[];
   projects?: any[];
+  banned?: boolean;
+  suspended?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
-  role: 'aideur' | 'demandeur';
+  role: 'aideur' | 'demandeur' | 'admin';
   login: (userData: User, token: string) => void;
   logout: () => void;
   switchRole: () => void;
@@ -40,7 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<'aideur' | 'demandeur'>('demandeur');
+  const [role, setRole] = useState<'aideur' | 'demandeur' | 'admin'>('demandeur');
   const [isLoading, setIsLoading] = useState(true);
 
   const getDefaultAvatar = (seed: string, gender?: 'male' | 'female') => {
@@ -52,6 +53,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadUserFromSupabase = async () => {
     try {
+      const isAdminSession = localStorage.getItem('admin_session') === 'true';
+      if (isAdminSession) {
+        const adminUser: User = {
+          id: '5636739d-0d77-4da6-9a35-0fb1a2c217a4',
+          first_name: 'Super',
+          last_name: 'Admin',
+          name: 'Super Admin',
+          email: 'admin@uniskills.ma',
+          role: 'admin',
+          city: 'Casablanca',
+          university: 'Uniskills',
+          level: '',
+          gender: 'male',
+          avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
+          bio: 'Super Administrateur',
+          rating: 5,
+          skills: [],
+          banned: false,
+          suspended: false
+        };
+        setUser(adminUser);
+        setRole('admin');
+        setIsLoading(false);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
@@ -66,6 +93,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (profile) {
+          if (profile.banned) {
+            await supabase.auth.signOut();
+            setUser(null);
+            setIsLoading(false);
+            return;
+          }
+
           let avatarUrl = profile.avatar_url;
           if (!avatarUrl) {
             avatarUrl = getDefaultAvatar(profile.id || profile.email || 'user', profile.gender);
@@ -77,16 +111,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             last_name: profile.last_name || '',
             name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
             email: profile.email,
-            role: (localStorage.getItem('role') as 'aideur' | 'demandeur') || profile.role || 'demandeur',
+            role: profile.role === 'admin' ? 'admin' : ((localStorage.getItem('role') as 'aideur' | 'demandeur') || profile.role || 'demandeur'),
             university: profile.university || '',
             city: profile.city || '',
-            semester: profile.semester || '',
             level: profile.level || '',
             gender: profile.gender || 'male',
             avatar_url: avatarUrl,
             bio: profile.bio || '',
             rating: profile.rating || 0,
-            skills: profile.skills || []
+            skills: profile.skills || [],
+            banned: profile.banned || false,
+            suspended: profile.suspended || false
           };
           setUser(userData);
           setRole(userData.role);
@@ -99,7 +134,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             last_name: session.user.user_metadata?.last_name || '',
             avatar_url: defaultAvatar,
             gender: session.user.user_metadata?.gender || 'male',
-            semester: session.user.user_metadata?.semester || '',
             level: session.user.user_metadata?.level || '',
             role: 'demandeur',
             created_at: new Date().toISOString()
@@ -118,11 +152,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             first_name: newProfile.first_name,
             last_name: newProfile.last_name,
             name: `${newProfile.first_name} ${newProfile.last_name}`.trim(),
-            email: newProfile.email,
+            email: newProfile.email || '',
             role: 'demandeur',
             avatar_url: defaultAvatar,
             gender: 'male',
-            semester: '',
             level: ''
           });
         }
@@ -161,6 +194,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    if (localStorage.getItem('admin_session')) {
+      localStorage.removeItem('admin_session');
+      setUser(null);
+      localStorage.removeItem('role');
+      return;
+    }
     await supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem('role');

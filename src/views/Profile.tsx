@@ -18,7 +18,9 @@ import {
   Link as LinkIcon,
   Upload,
   Save,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
@@ -56,8 +58,7 @@ const availableSkills = [
 ];
 
 const studyLevels = [
-  'Baccalauréat', 'Licence 1', 'Licence 2', 'Licence 3', 'Master 1', 'Master 2', 'Doctorat',
-  'Cycle Ingénieur 1ère année', 'Cycle Ingénieur 2ème année', 'Cycle Ingénieur 3ème année', 'BTS', 'DUT'
+  '1re année', '2e année', '3e année', '4e année', 'Master 1', 'Master 2', 'Doctorat'
 ];
 
 interface Skill {
@@ -102,7 +103,9 @@ export default function Profile() {
     level: user?.level || '',
     gender: user?.gender || 'male',
     bio: user?.bio || '',
-    avatar_url: user?.avatar_url || ''
+    avatar_url: user?.avatar_url || '',
+    status: '',
+    suspended: user?.suspended || false
   });
   
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -163,7 +166,9 @@ export default function Profile() {
           level: data.level || '',
           gender: data.gender || 'male',
           bio: data.bio || '',
-          avatar_url: data.avatar_url || ''
+          avatar_url: data.avatar_url || '',
+          status: data.status || 'non_verifie',
+          suspended: data.suspended || false
         });
         
         if (data.skills && Array.isArray(data.skills)) {
@@ -478,15 +483,24 @@ export default function Profile() {
               
               {uploading && <div className="mt-2 text-xs text-primary">Upload en cours...</div>}
               
-              <div className="mt-4">
+              <div className="mt-4 flex flex-col items-center">
                 <h3 className="text-2xl font-black text-slate-900">{formData.first_name} {formData.last_name}</h3>
+                {formData.suspended ? (
+                  <div className="mt-2 px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Compte Suspendu
+                  </div>
+                ) : formData.status === 'verifie' ? (
+                  <div className="mt-2 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5" /> Compte Vérifié
+                  </div>
+                ) : null}
               </div>
               
               <div className="flex items-center justify-center gap-4 mt-2">
-                <div className="flex items-center gap-1 text-slate-500 text-xs">
-                  <BookOpen className="w-3.5 h-3.5 text-primary" />
-                  <span>{formData.level || 'Niveau non renseigné'}</span>
-                </div>
+                  <div className="flex items-center gap-1 text-slate-500 text-xs">
+                    <BookOpen className="w-3.5 h-3.5 text-primary" />
+                    <span>{formData.level || 'Niveau d\'études non renseigné'}</span>
+                  </div>
                 <div className="flex items-center gap-1 text-slate-500 text-xs">
                   <MapPin className="w-3.5 h-3.5 text-primary" />
                   <span>{formData.city || 'Ville non renseignée'}</span>
@@ -610,7 +624,7 @@ export default function Profile() {
                   )}
                   
                   <div className="flex gap-2">
-                    <button onClick={handleSaveProfile} disabled={uploading} className="flex-1 py-2 bg-primary text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1">
+                    <button onClick={() => handleSaveProfile()} disabled={uploading} className="flex-1 py-2 bg-primary text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1">
                       {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
                       Sauvegarder
                     </button>
@@ -766,7 +780,7 @@ export default function Profile() {
               <button 
                 onClick={() => {
                   setEditingProject(null);
-                  setProjectForm({ title: '', shortDescription: '', description: '', link: '', file: null });
+                  setProjectForm({ title: '', shortDescription: '', description: '', link: '', file: null, cover: null });
                   setShowProjectModal(true);
                 }}
                 className="p-2 bg-blue-50 text-primary rounded-xl hover:bg-primary hover:text-white transition-all"

@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-import { 
-  X, Star, Briefcase, MessageSquare, 
-  MapPin, GraduationCap, BookOpen, 
+import {
+  X, Star, Briefcase, MessageSquare,
+  MapPin, GraduationCap, BookOpen,
   User, Eye, Link as LinkIcon, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -128,7 +129,7 @@ export const UserProfileModal = ({ userId, onClose, onStartChat }: {
               </div>
             </div>
             {onStartChat && (
-              <button 
+              <button
                 onClick={() => onStartChat(userId)}
                 className="px-6 py-3 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
               >

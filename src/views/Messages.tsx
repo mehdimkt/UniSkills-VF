@@ -234,14 +234,14 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
   const stickers = ['🎯', '🚀', '⭐', '💎', '🎨', '📚', '💡', '🤝', '🔥', '💯', '✨', '🌟', '💪', '🎉', '🎈', '🏆', '🥇', '💎', '🔮', '🎪'];
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [selectedConv?.messages]);
+  }, [selectedConvId ? messagesState[selectedConvId] : undefined]);
 
-  const loadConversations = useCallback(async () => {
+    const loadConversations = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
+    if (conversations.length === 0) setLoading(true);
 
     try {
       const { data: participations, error: partError } = await supabase
@@ -335,10 +335,7 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
         } else {
           const { data: newConv, error: createError } = await supabase
             .from('conversations')
-            .insert([{
-              participants: [user.id, inquiryContext.owner_id],
-              created_at: new Date().toISOString()
-            }])
+            .insert([{}])
             .select()
             .single();
 
@@ -402,7 +399,6 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
           deleted: m.deleted || false,
           file_url: m.file_url,
           file_name: m.file_name,
-          reply_to_message_id: m.reply_to_message_id,
           created_at: m.created_at,
           updated_at: m.updated_at || m.created_at
         }));
@@ -488,7 +484,6 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
                   deleted: newMsg.deleted || false,
                   file_url: newMsg.file_url,
                   file_name: newMsg.file_name,
-                  reply_to_message_id: newMsg.reply_to_message_id,
                   created_at: newMsg.created_at,
                   updated_at: newMsg.updated_at || newMsg.created_at
                 }]
@@ -502,7 +497,7 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
           audio.play().catch(() => { });
         }
 
-        if (newMsg.conversation_id === selectedConvId && newMsg.sender_id !== user.id) {
+        if (newMsg.conversation_id == selectedConvId && newMsg.sender_id !== user.id) {
           await supabase
             .from('messages')
             .update({ status: 'seen' })
@@ -601,20 +596,23 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
           conversation_id: selectedConvId,
           sender_id: user.id,
           content: messageContent,
-          status: 'sent',
-          reply_to_message_id: replyingTo?.id,
-          created_at: new Date().toISOString()
+          status: 'sent'
         }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase Insert Error:', error);
+        alert(`Erreur d'envoi: ${error.message}`);
+        throw error;
+      }
 
       setMessagesState(prev => {
+        if (!selectedConvId) return prev;
         const current = prev[selectedConvId] || [];
         return {
           ...prev,
-          [selectedConvId]: current.map(m => m.id === tempId ? { ...m, id: data.id, status: 'sent' } : m)
+          [selectedConvId]: current.map((m: Message) => m.id === tempId ? { ...m, id: data.id, status: 'sent' } : m)
         };
       });
 
@@ -640,12 +638,10 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
 
     } catch (err) {
       console.error('Error sending message:', err);
-      setConversations(prev => prev.map(c =>
-        c.id === selectedConvId ? {
-          ...c,
-          messages: c.messages?.map(m => m.id === tempId ? { ...m, status: 'failed' } : m)
-        } : c
-      ));
+      setMessagesState(prev => ({
+        ...prev,
+        [selectedConvId]: (prev[selectedConvId] || []).map((m: Message) => m.id === tempId ? { ...m, status: 'failed' as const } : m)
+      }));
     }
   };
 
@@ -730,10 +726,13 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
         updated_at: newMsg.created_at
       };
 
+      setMessagesState(prev => ({
+        ...prev,
+        [selectedConvId]: [...(prev[selectedConvId] || []), formattedMsg]
+      }));
       setConversations(prev => prev.map(c =>
         c.id === selectedConvId ? {
           ...c,
-          messages: [...(c.messages || []), formattedMsg],
           lastMessage: messageContent,
           lastMessageAt: newMsg.created_at
         } : c
@@ -770,10 +769,11 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
       if (error) throw error;
 
       setMessagesState(prev => {
+        if (!selectedConvId) return prev;
         const current = prev[selectedConvId] || [];
         return {
           ...prev,
-          [selectedConvId]: current.map(m => m.id === msg.id ? { ...m, content: newContent, edited: true } : m)
+          [selectedConvId]: current.map((m: Message) => m.id === msg.id ? { ...m, content: newContent, edited: true } : m)
         };
       });
 
@@ -799,10 +799,11 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
       if (error) throw error;
 
       setMessagesState(prev => {
+        if (!selectedConvId) return prev;
         const current = prev[selectedConvId] || [];
         return {
           ...prev,
-          [selectedConvId]: current.map(m => m.id === msg.id ? { ...m, deleted: true, content: 'Ce message a été supprimé' } : m)
+          [selectedConvId]: current.map((m: Message) => m.id === msg.id ? { ...m, deleted: true, content: 'Ce message a été supprimé' } : m)
         };
       });
 
@@ -949,9 +950,9 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
   }
 
   return (
-    <div className="flex h-full w-full bg-slate-50 overflow-hidden absolute inset-0">
+    <div className="flex w-full h-full bg-white overflow-hidden relative overscroll-none min-h-0">
       {/* SIDEBAR - Liste des conversations */}
-      <div className={`w-full lg:w-[380px] bg-white border-r border-slate-100 flex flex-col shrink-0 transition-all duration-300 ${mobileView === 'chat' ? 'hidden lg:flex' : 'flex'
+      <div className={`w-full lg:w-[380px] h-full bg-white border-r border-slate-100 flex flex-col shrink-0 transition-all duration-300 ${mobileView === 'chat' ? 'hidden lg:flex' : 'flex'
         }`}>
         <div className="p-5 border-b border-slate-100">
           <h2 className="text-2xl font-black text-slate-900 mb-4">Messages</h2>
@@ -967,7 +968,7 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar">
           {sortedConversations.length > 0 ? (
             sortedConversations.map((conv) => {
               const isOnline = onlineUsers.has(conv.otherUser?.id);
@@ -1065,7 +1066,7 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
       </div>
 
       {/* ZONE DE CHAT */}
-      <div className={`flex-1 flex flex-col bg-white min-w-0 transition-all duration-300 ${mobileView === 'list' ? 'hidden lg:flex' : 'flex'
+      <div className={`flex-1 h-full flex flex-col bg-white min-w-0 transition-all duration-300 relative ${mobileView === 'list' ? 'hidden lg:flex' : 'flex'
         }`}>
         {selectedConv ? (
           <>
@@ -1182,10 +1183,11 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-2" ref={scrollRef}>
-              {!messagesState[selectedConvId] ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 space-y-2 custom-scrollbar" ref={scrollRef}>
+              {!selectedConvId || !messagesState[selectedConvId] ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin opacity-40" />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chargement des messages...</p>
                 </div>
               ) : messagesState[selectedConvId].length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
@@ -1196,9 +1198,9 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
                   <p className="text-slate-400 text-sm">Soyez le premier à envoyer un message</p>
                 </div>
               ) : (
-                messagesState[selectedConvId].map((msg, idx) => {
+                messagesState[selectedConvId].map((msg: Message, idx: number) => {
                   const isMe = msg.senderId === user?.id;
-                  const currentMessages = messagesState[selectedConvId];
+                  const currentMessages = messagesState[selectedConvId!];
                   const prevMsg = idx > 0 ? currentMessages[idx - 1] : null;
                   const showAvatar = !isMe && (!prevMsg || prevMsg.senderId !== msg.senderId);
 
@@ -1223,7 +1225,7 @@ export default function Messages({ inquiryContext, onNavigate, onClearContext }:
                               <span className="font-bold">Réponse</span>
                             </div>
                             <p className="italic truncate">
-                              {currentMessages.find(m => m.id === msg.reply_to_message_id)?.content || 'Message introuvable'}
+                              {currentMessages.find((m: Message) => m.id === msg.reply_to_message_id)?.content || 'Message introuvable'}
                             </p>
                           </div>
                         )}

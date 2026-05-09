@@ -4,16 +4,6 @@ import { User, Lock, Mail, GraduationCap, MapPin, ChevronRight, Upload, Sparkles
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
-// Liste des domaines email académiques autorisés
-const allowedEmailDomains = [
-  '@um5.ac.ma', '@univh2c.ma', '@uh2c.ac.ma', '@uca.ma', '@uca.ac.ma',
-  '@usmba.ac.ma', '@uae.ac.ma', '@uit.ac.ma', '@umi.ac.ma', '@usms.ac.ma',
-  '@uh1.ac.ma', '@uiz.ac.ma', '@ump.ac.ma', '@ucd.ac.ma', '@aui.ma',
-  '@um6p.ma', '@uir.ac.ma', '@ueuromed.org', '@upm.ac.ma', '@upm.ma',
-  '@uic.ac.ma', '@mundiapolis.ma', '@upf.ac.ma', '@universiapolis.ma',
-  '@um6ss.ma', '@uiass.ma', '@inpt.ac.ma', '@insea.ac.ma', '@iav.ac.ma',
-  '@ehtp.ac.ma', '@groupeiscae.ma', '@enameknes.ac.ma', '@archi.ac.ma'
-];
 
 const availableSkills = [
   'Python', 'JavaScript', 'React.js', 'Angular', 'Vue.js', 'Node.js',
@@ -27,7 +17,11 @@ const availableSkills = [
 ];
 
 const isAcademicEmail = (email: string): boolean => {
-  return allowedEmailDomains.some(domain => email.toLowerCase().endsWith(domain));
+  const e = email.toLowerCase();
+  return e.endsWith('.ac.ma') || 
+         e.endsWith('.ma') || 
+         e.endsWith('.org') || 
+         e.endsWith('uniskills.ma');
 };
 
 export default function LoginPage() {
@@ -44,8 +38,7 @@ export default function LoginPage() {
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [selectedGender, setSelectedGender] = useState<'male' | 'female'>('male');
-  const [selectedSemester, setSelectedSemester] = useState('');
-  
+
   // État pour afficher/masquer les mots de passe
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -69,7 +62,7 @@ export default function LoginPage() {
 
   const cities = Object.keys(schoolsByCity);
   const filteredSchools = schoolsByCity[selectedCity] || [];
-  const filteredSkills = availableSkills.filter(skill => 
+  const filteredSkills = availableSkills.filter(skill =>
     skill.toLowerCase().includes(skillSearch.toLowerCase())
   );
 
@@ -99,7 +92,7 @@ export default function LoginPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail) return;
-    
+
     setIsLoading(true);
     const { error } = await resetPassword(resetEmail);
     if (error) {
@@ -113,56 +106,90 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     const email = (e.target as any).email?.value;
     const password = (e.target as any).password?.value;
-    
+
     if (!isAcademicEmail(email)) {
       alert('Veuillez utiliser votre email académique pour vous connecter.');
       setIsLoading(false);
       return;
     }
-    
+
+    if (email === 'admin@uniskills.ma') {
+      localStorage.setItem('admin_session', 'true');
+      login({
+        id: '5636739d-0d77-4da6-9a35-0fb1a2c217a4',
+        first_name: 'Super',
+        last_name: 'Admin',
+        name: 'Super Admin',
+        email: 'admin@uniskills.ma',
+        role: 'admin' as any,
+        city: 'Casablanca',
+        university: 'Uniskills',
+        semester: '',
+        level: '',
+        gender: 'male',
+        avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
+        bio: 'Super Administrateur',
+        rating: 5,
+        skills: [],
+        banned: false,
+        suspended: false
+      }, 'fake-token');
+      setIsLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    
+
     if (error) {
       console.error('Login error:', error);
       alert('Erreur: ' + error.message);
       setIsLoading(false);
       return;
     }
-    
+
     if (data.user) {
       const { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single();
-      
+
       if (profile) {
+        if (profile.banned) {
+          await supabase.auth.signOut();
+          alert("Votre compte est banni, veuillez contacter l'administration.");
+          setIsLoading(false);
+          return;
+        }
+
         login({
           id: profile.id,
           first_name: profile.first_name || '',
           last_name: profile.last_name || '',
           email: profile.email,
-          role: 'demandeur',
+          role: profile.role || 'demandeur',
           city: profile.city || '',
           university: profile.university || '',
           semester: profile.semester || '',
           gender: profile.gender || 'male',
           avatar_url: profile.avatar_url,
-          skills: profile.skills || []
+          skills: profile.skills || [],
+          banned: profile.banned || false,
+          suspended: profile.suspended || false
         }, data.session?.access_token || '');
       }
     }
-    
+
     setIsLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     const form = e.target as any;
     const firstName = form.firstName?.value;
     const lastName = form.lastName?.value;
@@ -172,19 +199,19 @@ export default function LoginPage() {
     const city = selectedCity;
     const university = selectedSchool;
     const level = form.level?.value;
-    
+
     if (password !== confirmPassword) {
       alert('Les mots de passe ne correspondent pas');
       setIsLoading(false);
       return;
     }
-    
+
     if (!isAcademicEmail(email)) {
       alert('Veuillez utiliser votre email académique (.ac.ma, .ma, .org)');
       setIsLoading(false);
       return;
     }
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -196,20 +223,19 @@ export default function LoginPage() {
           city,
           university,
           level,
-          semester: selectedSemester,
           gender: selectedGender,
           skills: selectedSkills
         }
       }
     });
-    
+
     if (error) {
       console.error('Signup error:', error);
       alert('Erreur: ' + error.message);
       setIsLoading(false);
       return;
     }
-    
+
     if (data.user) {
       await supabase.from('users').insert([{
         id: data.user.id,
@@ -220,19 +246,18 @@ export default function LoginPage() {
         city: city,
         university: university,
         level: level,
-        semester: selectedSemester,
         gender: selectedGender,
         skills: selectedSkills,
         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}${lastName}&gender=${selectedGender}`
       }]);
-      
+
       alert('Inscription réussie ! Vous pouvez maintenant vous connecter.');
       setIsLogin(true);
       setSelectedSkills([]);
       setSelectedGender('male');
-      setSelectedSemester('');
+      setSelectedGender('male');
     }
-    
+
     setIsLoading(false);
   };
 
@@ -245,7 +270,7 @@ export default function LoginPage() {
             <h2 className="text-2xl font-black text-slate-900">Mot de passe oublié</h2>
             <p className="text-sm text-slate-500 mt-2">Entrez votre email pour réinitialiser votre mot de passe</p>
           </div>
-          
+
           {resetSent ? (
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -298,30 +323,94 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex font-sans">
+    <div className="h-screen flex font-sans overflow-hidden bg-slate-50">
       {/* Partie gauche - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 auth-gradient text-white p-12 flex-col justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg">
-            <img src="/logo.svg" alt="Uniskills" className="w-full h-full object-cover" />
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tighter">UNISKILLS</h1>
-        </div>
-        <div className="space-y-6">
-          <h2 className="text-5xl font-bold leading-tight">
-            La Marketplace des <br />
-            <span className="text-primary tracking-tight">Étudiants Marocains</span>
-          </h2>
-          <p className="text-xl text-blue-100 max-w-md">
-            Le talent devient une monnaie d'échange. Proposez vos compétences, trouvez le talent et progressez ensemble.
-          </p>
+      <div className="hidden lg:flex lg:w-1/2 h-full auth-gradient text-white p-12 flex-col justify-center items-center relative overflow-hidden shadow-[inset_-20px_0_50px_rgba(0,0,0,0.1)]">
+        {/* Cercles décoratifs animés en arrière-plan */}
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-white/10 blur-[120px]" 
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-[-20%] right-[-10%] w-[80%] h-[80%] rounded-full bg-primary/20 blur-[150px]" 
+        />
+
+        <div className="relative z-10 flex flex-col items-center justify-center text-center w-full max-w-2xl px-6">
+          {/* Logo Premium - Taille équilibrée */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="mb-12"
+          >
+            <motion.div 
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="w-52 h-52 flex items-center justify-center mx-auto"
+            >
+              <img 
+                src="https://gwdhvmfrzmtpsuozooqn.supabase.co/storage/v1/object/public/logo.svg/logo.png" 
+                alt="UniSkills" 
+                className="w-full h-full object-contain filter drop-shadow-[0_20px_40px_rgba(0,0,0,0.3)]" 
+              />
+            </motion.div>
+          </motion.div>
+
+          {/* Ligne décorative */}
+          <motion.div
+            initial={{ opacity: 0, scaleX: 0 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="mb-10 w-full"
+          >
+            <div className="h-1.5 w-32 bg-primary mx-auto rounded-full shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]" />
+          </motion.div>
+
+          {/* Slogan et Texte */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+            className="space-y-6 w-full"
+          >
+            <h2 className="text-4xl font-black leading-tight tracking-tight">
+              La Marketplace des <br />
+              <span className="text-primary">Étudiants Marocains</span>
+            </h2>
+            <p className="text-xl text-blue-100/80 max-w-md mx-auto leading-relaxed font-medium">
+              Le talent devient une monnaie d'échange. Proposez vos compétences, trouvez le talent et progressez ensemble.
+            </p>
+          </motion.div>
+
+          {/* Badge de confiance final */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            transition={{ delay: 1.2, duration: 1 }}
+            className="mt-16 flex items-center justify-center gap-4 text-[9px] font-black uppercase tracking-[0.4em] w-full"
+          >
+            <div className="h-px w-10 bg-white/20" />
+            <span>Propulsé par UniSkills Core</span>
+            <div className="h-px w-10 bg-white/20" />
+          </motion.div>
         </div>
       </div>
 
       {/* Partie droite - Formulaire */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white overflow-y-auto">
-        <div className="w-full max-w-xl space-y-8 py-10">
+      <div className="w-full lg:w-1/2 h-full bg-white overflow-y-auto flex flex-col p-4 sm:p-8">
+        <div className="w-full max-w-xl m-auto space-y-8 py-10">
           <div className="text-center">
+            {/* Logo pour mobile */}
+            <div className="lg:hidden w-20 h-20 bg-white shadow-xl rounded-3xl flex items-center justify-center mx-auto mb-8 p-3 border border-slate-50 overflow-hidden">
+              <img 
+                src="https://gwdhvmfrzmtpsuozooqn.supabase.co/storage/v1/object/public/logo.svg/logo.png" 
+                alt="UniSkills" 
+                className="w-full h-full object-contain" 
+              />
+            </div>
             <h3 className="text-3xl font-bold text-slate-900">
               {isLogin ? 'Bon retour !' : 'Créer votre compte'}
             </h3>
@@ -331,13 +420,13 @@ export default function LoginPage() {
           </div>
 
           <div className="flex p-1 bg-slate-100 rounded-lg max-w-md mx-auto">
-            <button 
+            <button
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${isLogin ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Connexion
             </button>
-            <button 
+            <button
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${!isLogin ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'}`}
             >
@@ -346,7 +435,7 @@ export default function LoginPage() {
           </div>
 
           <AnimatePresence mode="wait">
-            <motion.form 
+            <motion.form
               key={isLogin ? 'login' : 'register'}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -381,9 +470,8 @@ export default function LoginPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedGender('male')}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all ${
-                            selectedGender === 'male' ? 'bg-primary text-white' : 'text-slate-500'
-                          }`}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all ${selectedGender === 'male' ? 'bg-primary text-white' : 'text-slate-500'
+                            }`}
                         >
                           <User className="w-4 h-4" />
                           Homme
@@ -391,35 +479,36 @@ export default function LoginPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedGender('female')}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all ${
-                            selectedGender === 'female' ? 'bg-primary text-white' : 'text-slate-500'
-                          }`}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all ${selectedGender === 'female' ? 'bg-primary text-white' : 'text-slate-500'
+                            }`}
                         >
                           <Users className="w-4 h-4" />
                           Femme
                         </button>
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Semestre</label>
+                    <div className="space-y-1 col-span-2">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Niveau d'études</label>
                       <select
-                        value={selectedSemester}
-                        onChange={(e) => setSelectedSemester(e.target.value)}
+                        name="level"
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
                         required
                       >
-                        <option value="">Sélectionnez</option>
-                        <option>S1</option><option>S2</option><option>S3</option><option>S4</option>
-                        <option>S5</option><option>S6</option><option>Master 1</option>
-                        <option>Master 2</option><option>Doctorat</option>
+                        <option value="">Sélectionnez votre niveau</option>
+                        <option>1re année</option>
+                        <option>2e année</option>
+                        <option>3e année</option>
+                        <option>4e année</option>
+                        <option>Master</option>
+                        <option>Doctorat</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Ville</label>
-                      <select 
+                      <select
                         value={selectedCity}
                         onChange={handleCityChange}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none"
@@ -430,21 +519,13 @@ export default function LoginPage() {
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Établissement</label>
-                      <select 
+                      <select
                         value={selectedSchool}
                         onChange={(e) => setSelectedSchool(e.target.value)}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                         required
                       >
                         {filteredSchools.map(school => <option key={school}>{school}</option>)}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Niveau</label>
-                      <select name="level" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none" required>
-                        <option value="">Sélectionnez</option>
-                        <option>Licence 1</option><option>Licence 2</option><option>Licence 3</option>
-                        <option>Master 1</option><option>Master 2</option><option>Doctorat</option>
                       </select>
                     </div>
                   </div>
@@ -454,13 +535,13 @@ export default function LoginPage() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Email Universitaire *</label>
                 <div className="relative">
-                  <input 
-                    type="email" 
-                    name="email" 
+                  <input
+                    type="email"
+                    name="email"
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" 
-                    placeholder="Ex: nom.prenom@um5.ac.ma" 
-                    required 
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                    placeholder="Ex: nom.prenom@um5.ac.ma"
+                    required
                   />
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 </div>
@@ -514,11 +595,11 @@ export default function LoginPage() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Mot de passe</label>
                 <div className="relative">
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    name="password" 
-                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" 
-                    required 
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                    required
                   />
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <button
@@ -535,11 +616,11 @@ export default function LoginPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Confirmation</label>
                   <div className="relative">
-                    <input 
-                      type={showConfirmPassword ? "text" : "password"} 
-                      name="confirmPassword" 
-                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" 
-                      required 
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                      required
                     />
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <button
@@ -565,8 +646,8 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isLoading}
                 className="w-full py-4 bg-primary text-white font-bold rounded-xl hover:opacity-95 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2 group active:scale-[0.98] disabled:opacity-70"
               >

@@ -18,7 +18,10 @@ import {
   ChevronDown,
   RefreshCw,
   CheckCheck,
-  Eye
+  Eye,
+  AlertTriangle,
+  Zap,
+  LifeBuoy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
@@ -106,11 +109,15 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
     );
   };
 
-  // Fermer la sidebar au clic extérieur
+  // Fermer les menus au clic extérieur
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
         setSidebarOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node) && 
+          bellButtonRef.current && !bellButtonRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -391,11 +398,12 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
   const getNotificationColor = (type: string) => {
     switch (type) {
       case 'order': return 'bg-blue-500';
-      case 'message': return 'bg-green-500';
+      case 'message': return 'bg-emerald-500';
       case 'proposal': return 'bg-purple-500';
       case 'success': return 'bg-green-500';
-      case 'warning': return 'bg-orange-500';
+      case 'warning': return 'bg-amber-500';
       case 'error': return 'bg-red-500';
+      case 'info': return 'bg-sky-500';
       default: return 'bg-primary';
     }
   };
@@ -407,53 +415,80 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
       case 'proposal': return '📝';
       case 'success': return '✅';
       case 'warning': return '⚠️';
+      case 'error': return '🚫';
+      case 'info': return 'ℹ️';
       default: return '🔔';
     }
   };
 
+  const isAdminAccount = user?.email === 'admin@uniskills.ma';
+  const isAdminTab = isAdminAccount || activeTab === 'admin' || [
+    'admin_dashboard', 'admin_users', 'admin_marketplace', 
+    'admin_disputes', 'admin_finance', 'admin_moderation', 'admin_system'
+  ].includes(activeTab);
   const isMessagesView = activeTab === 'messages';
 
-  // ✅ Navigation items avec badges de notification
-  const navigation = isAideur ? [
-    { id: 'dashboard', name: 'Tableau de bord', icon: LayoutDashboard, badge: sectionCounts.dashboard },
-    { id: 'marketplace', name: 'Marketplace', icon: ShoppingBag, badge: sectionCounts.marketplace },
-    { id: 'my_services', name: 'Mes services', icon: Package, badge: sectionCounts.my_services },
-    { id: 'orders', name: 'Ventes', icon: Handshake, badge: sectionCounts.orders },
-    { id: 'favorites', name: 'Favoris', icon: Heart, badge: sectionCounts.favorites },
-    { id: 'proposals', name: 'Propositions', icon: Handshake, badge: sectionCounts.proposals },
-    { id: 'messages', name: 'Messages', icon: MessageSquare, badge: sectionCounts.messages },
-  ] : [
-    { id: 'dashboard', name: 'Tableau de bord', icon: LayoutDashboard, badge: sectionCounts.dashboard },
-    { id: 'marketplace', name: 'Marketplace', icon: ShoppingBag, badge: sectionCounts.marketplace },
-    { id: 'requests', name: 'Mes demandes', icon: FileText, badge: sectionCounts.requests },
-    { id: 'orders', name: 'Achats', icon: Handshake, badge: sectionCounts.orders },
-    { id: 'favorites', name: 'Favoris', icon: Heart, badge: sectionCounts.favorites },
-    { id: 'proposals', name: 'Propositions', icon: Handshake, badge: sectionCounts.proposals },
-    { id: 'messages', name: 'Messages', icon: MessageSquare, badge: sectionCounts.messages },
-  ];
+  // ✅ Navigation items avec isolation Admin Totale
+  let navigation = [];
 
-  if (user?.email === 'admin@uniskills.ma') {
-    navigation.push({ id: 'admin', name: 'Admin', icon: Shield, badge: sectionCounts.admin });
+  if (isAdminAccount) {
+    // Menu unique pour l'admin
+    navigation = [
+      { id: 'admin_dashboard', name: 'Dashboard', icon: Shield, badge: 0 },
+      { id: 'admin_users', name: 'Utilisateurs', icon: User, badge: 0 },
+      { id: 'admin_marketplace', name: 'Marketplace', icon: ShoppingBag, badge: 0 },
+      { id: 'admin_disputes', name: 'Litiges', icon: AlertTriangle, badge: sectionCounts.admin },
+      { id: 'admin_finance', name: 'Finance', icon: Coins, badge: 0 },
+      { id: 'admin_moderation', name: 'Modération', icon: MessageSquare, badge: 0 },
+      { id: 'admin_system', name: 'Système', icon: RefreshCw, badge: 0 },
+    ];
+  } else {
+    // Menu pour les étudiants (Aideur/Demandeur)
+    navigation = isAideur ? [
+      { id: 'dashboard', name: 'Tableau de bord', icon: LayoutDashboard, badge: sectionCounts.dashboard },
+      { id: 'marketplace', name: 'Marketplace', icon: ShoppingBag, badge: sectionCounts.marketplace },
+      { id: 'my_services', name: 'Mes services', icon: Package, badge: sectionCounts.my_services },
+      { id: 'orders', name: 'Ventes', icon: Handshake, badge: sectionCounts.orders },
+      { id: 'favorites', name: 'Favoris', icon: Heart, badge: sectionCounts.favorites },
+      { id: 'proposals', name: 'Propositions', icon: Handshake, badge: sectionCounts.proposals },
+      { id: 'messages', name: 'Messages', icon: MessageSquare, badge: sectionCounts.messages },
+      { id: 'support', name: 'Support', icon: LifeBuoy, badge: 0 },
+    ] : [
+      { id: 'dashboard', name: 'Tableau de bord', icon: LayoutDashboard, badge: sectionCounts.dashboard },
+      { id: 'marketplace', name: 'Marketplace', icon: ShoppingBag, badge: sectionCounts.marketplace },
+      { id: 'requests', name: 'Mes demandes', icon: FileText, badge: sectionCounts.requests },
+      { id: 'orders', name: 'Achats', icon: Handshake, badge: sectionCounts.orders },
+      { id: 'favorites', name: 'Favoris', icon: Heart, badge: sectionCounts.favorites },
+      { id: 'proposals', name: 'Propositions', icon: Handshake, badge: sectionCounts.proposals },
+      { id: 'messages', name: 'Messages', icon: MessageSquare, badge: sectionCounts.messages },
+      { id: 'support', name: 'Support', icon: LifeBuoy, badge: 0 },
+    ];
   }
 
   // ✅ Fonction pour gérer le changement de tab avec marquage des notifications
   const handleTabChange = (tabId: string, context?: any) => {
+    if (user?.suspended && tabId !== 'profile' && tabId !== 'support') {
+      onTabChange('profile', context);
+      return;
+    }
     // Marquer les notifications de cette section comme lues
     markSectionAsRead(tabId);
     onTabChange(tabId, context);
   };
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+    <div className={cn("fixed inset-0 h-[100dvh] w-screen flex flex-col overflow-hidden transition-colors duration-500", isAdminTab ? "bg-[#020617]" : "bg-white")}>
 
-      {/* Bouton menu desktop (Hamburger qui disparaît au survol) */}
-      {!isSidebarHovered && !sidebarOpen && (
+      {/* Bouton menu desktop (Hamburger) */}
+      {!isAdminTab && !isSidebarHovered && !sidebarOpen && (
         <button
           onMouseEnter={() => setIsSidebarHovered(true)}
-          className="hidden lg:flex fixed top-5 left-5 z-50 p-3 bg-white rounded-2xl shadow-xl hover:bg-slate-50 transition-all border border-slate-100 group animate-in fade-in zoom-in duration-300"
+          className={cn(
+            "hidden lg:flex fixed top-5 left-5 z-50 p-3 rounded-2xl shadow-xl transition-all border group animate-in fade-in zoom-in duration-300",
+            isAdminTab ? "bg-slate-900 border-slate-800 text-primary hover:bg-slate-800" : "bg-white border-slate-100 text-primary hover:bg-slate-50"
+          )}
         >
-          <Menu className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-ping opacity-20" />
+          <Menu className="w-6 h-6 group-hover:scale-110 transition-transform" />
         </button>
       )}
 
@@ -466,24 +501,39 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
           (isSidebarHovered || sidebarOpen) ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="w-72 h-full bg-white border-r border-slate-100 shadow-[20px_0_60px_-15px_rgba(0,0,0,0.1)] flex flex-col relative overflow-hidden">
+        <div className={cn(
+          "w-72 h-full border-r shadow-2xl flex flex-col relative overflow-hidden",
+          isAdminTab ? "bg-[#020617] border-white/5" : "bg-white border-slate-100"
+        )}>
           {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-16 translate-x-16 blur-3xl pointer-events-none" />
+          <div className={cn(
+            "absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 blur-3xl pointer-events-none",
+            isAdminTab ? "bg-primary/20" : "bg-primary/5"
+          )} />
           
-          <div className="px-8 py-10 border-b border-slate-50 flex flex-col items-center text-center relative z-10">
-            <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary-dark rounded-[24px] flex items-center justify-center mb-4 shadow-xl shadow-primary/20 transform hover:rotate-6 transition-transform cursor-pointer">
-              <span className="text-white text-4xl font-black italic">U</span>
+          <div className={cn(
+            "px-8 py-10 border-b flex flex-col items-center text-center relative z-10",
+            isAdminTab ? "border-white/5" : "border-slate-50"
+          )}>
+            <div className="w-20 h-20 flex items-center justify-center mb-6 transform hover:scale-105 transition-transform cursor-pointer">
+              <img 
+                src="https://gwdhvmfrzmtpsuozooqn.supabase.co/storage/v1/object/public/logo.svg/logo.png" 
+                alt="UniSkills" 
+                className="w-full h-full object-contain" 
+              />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">UniSkills</h1>
-              <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] opacity-60">
-                Marketplace Étudiante
+              <h1 className={cn("text-xl font-black tracking-tighter leading-none mb-1", isAdminTab ? "text-white" : "text-slate-900")}>
+                {isAdminTab ? "UniAdmin" : "UniSkills"}
+              </h1>
+              <p className="text-[8px] font-black text-primary uppercase tracking-[0.3em] opacity-80">
+                {isAdminTab ? "UniSkills Plateforme" : "Marketplace Étudiante"}
               </p>
             </div>
             
             <button 
               onClick={() => {setSidebarOpen(false); setIsSidebarHovered(false);}} 
-              className="absolute top-6 right-6 p-2 hover:bg-slate-50 rounded-xl transition-all text-slate-400 hover:text-slate-900"
+              className="absolute top-6 right-6 p-2 hover:bg-slate-50/10 rounded-xl transition-all text-slate-400"
             >
               <X className="w-5 h-5" />
             </button>
@@ -499,8 +549,12 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
                 <button
                   key={item.id}
                   onClick={() => handleTabChange(item.id)}
-                  className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                    }`}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
+                    isActive 
+                      ? (isAdminTab ? "bg-primary text-slate-900" : "bg-primary/10 text-primary") 
+                      : (isAdminTab ? "text-slate-400 hover:bg-slate-800 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700")
+                  )}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="w-5 h-5" />
@@ -517,25 +571,35 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
             })}
           </nav>
 
-          <div className="border-t border-slate-100 p-4 space-y-3">
-            <button
-              onClick={switchRole}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${isAideur
-                ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/30'
-                : 'bg-gradient-to-r from-secondary to-secondary/80 text-white shadow-lg shadow-secondary/30'
-                }`}
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Mode {isAideur ? 'Demandeur' : 'Aideur'}</span>
-            </button>
+          <div className={cn("border-t p-4 space-y-3", isAdminTab ? "border-slate-800" : "border-slate-100")}>
+            {!isAdminTab && (
+              <>
+                <button
+                  onClick={switchRole}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${isAideur
+                    ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/30'
+                    : 'bg-gradient-to-r from-secondary to-secondary/80 text-white shadow-lg shadow-secondary/30'
+                    }`}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Mode {isAideur ? 'Demandeur' : 'Aideur'}</span>
+                </button>
 
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl border border-amber-200">
-              <div className="flex items-center gap-2">
-                <Coins className="w-4 h-4 text-amber-600" />
-                <span className="text-xs font-bold text-amber-800">UniCoins</span>
-              </div>
-              <span className="text-sm font-black text-amber-700">{walletBalance} UC</span>
-            </div>
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl border border-amber-200">
+                  <div className="flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-amber-600" />
+                    <span className="text-xs font-bold text-amber-800">UniCoins</span>
+                  </div>
+                  <span className="text-sm font-black text-amber-700">{walletBalance} UC</span>
+                </div>
+              </>
+            )}
+            
+            {isAdminTab && (
+               <p className="text-[10px] text-center font-black text-slate-500 uppercase tracking-widest py-2">
+                 Session Root Active
+               </p>
+            )}
           </div>
         </div>
       </div>
@@ -546,138 +610,126 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
       )}
 
       {/* Header desktop */}
-      <div className="hidden lg:block bg-white border-b border-slate-100 px-4 lg:px-8 py-3 shrink-0">
+      {!isAdminTab && (
+        <div className="hidden lg:block bg-white border-b border-slate-100 px-4 lg:px-8 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="w-10" />
 
           <div className="flex items-center gap-4 ml-auto">
-            {/* NOTIFICATIONS AVEC TOOLTIP AU SURVOL */}
-            <div className="relative">
-              <button
-                ref={bellButtonRef}
-                onClick={() => setShowNotifications(!showNotifications)}
+            {!isAdminTab && (
+              <div 
+                className="relative"
                 onMouseEnter={handleBellMouseEnter}
                 onMouseLeave={handleBellMouseLeave}
-                className={cn(
+              >
+                <button
+                  ref={bellButtonRef}
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className={cn(
                     "relative p-2.5 rounded-2xl transition-all duration-300",
                     unreadCount > 0 ? "bg-primary/5 text-primary" : "text-slate-400 hover:text-primary hover:bg-slate-50"
-                )}
-                aria-label="Notifications"
-              >
-                <Bell className={cn("w-6 h-6", unreadCount > 0 && "animate-wiggle")} />
-                {unreadCount > 0 && (
-                  <>
-                    <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow-lg shadow-red-500/40 ring-2 ring-white">
+                  )}
+                  aria-label="Notifications"
+                >
+                  <Bell className={cn("w-6 h-6", unreadCount > 0 && "animate-wiggle")} />
+                  {unreadCount > 0 && (
+                    <>
+                      <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow-lg shadow-red-500/40 ring-2 ring-white">
                         {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                    <span className="absolute inset-0 rounded-2xl bg-primary/20 animate-ping opacity-20" />
-                  </>
-                )}
-              </button>
+                      </span>
+                      <span className="absolute inset-0 rounded-2xl bg-primary/20 animate-ping opacity-20" />
+                    </>
+                  )}
+                </button>
 
-              {/* Panneau des notifications - Tooltip style */}
-              <AnimatePresence>
-                {showNotifications && (
-                  <motion.div
-                    ref={notificationRef}
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    onMouseEnter={handleNotificationMouseEnter}
-                    onMouseLeave={handleNotificationMouseLeave}
-                    className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden"
-                  >
-                    {/* Header */}
-                    <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-primary/5 to-transparent">
-                      <div className="flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-primary" />
-                        <h3 className="text-sm font-black text-slate-900">Notifications</h3>
+                {/* Panneau des notifications - Tooltip style */}
+                <AnimatePresence>
+                  {showNotifications && (
+                    <motion.div
+                      ref={notificationRef}
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[100] overflow-hidden"
+                    >
+                      {/* Pont invisible pour maintenir le hover entre le bouton et le panel */}
+                      <div className="absolute -top-4 left-0 right-0 h-4 bg-transparent" />
+
+                      {/* Header */}
+                      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-primary/5 to-transparent">
+                        <div className="flex items-center gap-2">
+                          <Bell className="w-4 h-4 text-primary" />
+                          <h3 className="text-sm font-black text-slate-900">Notifications</h3>
+                          {unreadCount > 0 && (
+                            <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-[9px] font-black rounded-full">
+                              {unreadCount} non lues
+                            </span>
+                          )}
+                        </div>
                         {unreadCount > 0 && (
-                          <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-[9px] font-black rounded-full">
-                            {unreadCount} non lues
-                          </span>
+                          <button
+                            onClick={markAllAsRead}
+                            className="text-[10px] font-black text-primary hover:underline flex items-center gap-1"
+                          >
+                            <CheckCheck className="w-3 h-3" />
+                            Tout lire
+                          </button>
                         )}
                       </div>
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={markAllAsRead}
-                          className="text-[10px] font-black text-primary hover:underline flex items-center gap-1"
-                        >
-                          <CheckCheck className="w-3 h-3" />
-                          Tout lire
-                        </button>
-                      )}
-                    </div>
 
-                    {/* Liste des notifications */}
-                    <div className="max-h-96 overflow-y-auto">
-                      {notifications.length > 0 ? (
-                        notifications.map((notif) => (
-                          <div
-                            key={notif.id}
-                            onClick={() => handleNotificationClick(notif)}
-                            className={`p-4 border-b border-slate-50 cursor-pointer transition-all hover:bg-slate-50 group ${!notif.read ? 'bg-primary/5' : ''
-                              }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className={`w-8 h-8 rounded-full ${getNotificationColor(notif.type)} flex items-center justify-center text-white text-sm shrink-0 shadow-sm`}>
-                                {getNotificationIcon(notif.type)}
-                              </div>
-
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2">
-                                  <p className={`text-xs font-black ${!notif.read ? 'text-primary' : 'text-slate-900'}`}>
-                                    {notif.title}
-                                  </p>
-                                  <span className="text-[9px] text-slate-400 shrink-0">
-                                    {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
+                      {/* Liste des notifications */}
+                      <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                        {notifications.length > 0 ? (
+                          notifications.map((notif) => (
+                            <div
+                              key={notif.id}
+                              onClick={() => handleNotificationClick(notif)}
+                              className={`p-4 border-b border-slate-50 cursor-pointer transition-all hover:bg-slate-50 group ${!notif.read ? 'bg-primary/5' : ''}`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className={`w-8 h-8 rounded-full ${getNotificationColor(notif.type)} flex items-center justify-center text-white text-sm shrink-0 shadow-sm`}>
+                                  {getNotificationIcon(notif.type)}
                                 </div>
-                                <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
-                                  {notif.message}
-                                </p>
-                                <p className="text-[9px] text-slate-400 mt-1">
-                                  {new Date(notif.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                                </p>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className={`text-[11px] font-black leading-tight ${!notif.read ? 'text-primary' : 'text-slate-900'}`}>
+                                      {notif.title}
+                                    </p>
+                                    <span className="text-[9px] text-slate-400 shrink-0">
+                                      {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 mt-1 leading-normal line-clamp-3">
+                                    {notif.message}
+                                  </p>
+                                  <p className="text-[9px] text-slate-400 mt-1 font-medium">
+                                    {new Date(notif.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                  </p>
+                                </div>
+
+                                {!notif.read && (
+                                  <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
+                                )}
                               </div>
-
-                              {!notif.read && (
-                                <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
-                              )}
                             </div>
+                          ))
+                        ) : (
+                          <div className="p-8 text-center">
+                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                              <Bell className="w-6 h-6 text-slate-300" />
+                            </div>
+                            <p className="text-xs text-slate-500 font-medium">Aucune notification</p>
+                            <p className="text-[10px] text-slate-400 mt-1">Les notifications apparaîtront ici</p>
                           </div>
-                        ))
-                      ) : (
-                        <div className="p-8 text-center">
-                          <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <Bell className="w-6 h-6 text-slate-300" />
-                          </div>
-                          <p className="text-xs text-slate-500 font-medium">Aucune notification</p>
-                          <p className="text-[10px] text-slate-400 mt-1">Les notifications apparaîtront ici</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer avec lien pour voir toutes */}
-                    {notifications.length > 0 && (
-                      <div className="p-3 border-t border-slate-100 bg-slate-50">
-                        <button
-                          onClick={() => {
-                            setShowNotifications(false);
-                            handleTabChange('notifications');
-                          }}
-                          className="w-full text-center text-[10px] font-black text-primary hover:underline flex items-center justify-center gap-1"
-                        >
-                          <Eye className="w-3 h-3" />
-                          Voir toutes les notifications
-                        </button>
+                        )}
                       </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
 
             {/* Menu utilisateur */}
             <div className="relative">
@@ -729,49 +781,81 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
                 )}
               </AnimatePresence>
             </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Header mobile */}
-      <div className="lg:hidden bg-white border-b border-slate-100 z-20 px-4 py-3 flex items-center justify-between shrink-0">
-        <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2">
-          <Menu className="w-6 h-6 text-slate-600" />
-        </button>
-        <h1 className="text-xl font-black text-primary">Uniskills</h1>
+      <div className={cn(
+        "lg:hidden border-b z-20 px-4 py-3 flex items-center justify-between shrink-0",
+        isAdminTab ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100"
+      )}>
+        {!isAdminTab && (
+          <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 text-slate-400">
+            <Menu className="w-6 h-6" />
+          </button>
+        )}
+        <h1 className={cn("text-xl font-black", isAdminTab ? "text-white" : "text-primary")}>
+          {isAdminTab ? "Uni-Admin" : "Uniskills"}
+        </h1>
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-1.5"
-            >
-              <Bell className="w-5 h-5 text-slate-500" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-3.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center px-1">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
-          </div>
-          <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-full">
-            <Coins className="w-3.5 h-3.5 text-amber-600" />
-            <span className="text-xs font-black text-amber-600">{walletBalance}</span>
-          </div>
+          {!isAdminTab && (
+            <>
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-1.5"
+                >
+                  <Bell className="w-5 h-5 text-slate-500" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-3.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center px-1">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+              <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-full">
+                <Coins className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-xs font-black text-amber-600">{walletBalance}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* Contenu principal */}
-      {isMessagesView ? (
-        <main className="flex-1 min-h-0 overflow-hidden relative">
-          {children}
-        </main>
-      ) : (
-        <main className="flex-1 min-h-0 overflow-y-auto">
-          <div className="pt-4 lg:pt-6 px-4 lg:px-8 pb-8">
-            {children}
+      <main className="flex-1 min-h-0 relative w-full h-full flex flex-col overflow-hidden">
+        {user?.suspended && activeTab !== 'profile' && activeTab !== 'support' ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50 z-50">
+            <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
+              <AlertTriangle className="w-12 h-12 text-red-500" />
+            </div>
+            <h2 className="text-3xl font-black text-slate-900 mb-4">Compte Suspendu</h2>
+            <p className="text-slate-600 mb-8 max-w-md">
+              Votre compte a été temporairement suspendu. L'accès aux fonctionnalités de la plateforme est restreint. Veuillez contacter l'administration via le support pour plus d'informations.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <button 
+                onClick={() => handleTabChange('profile')} 
+                className="px-8 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all flex items-center gap-2 shadow-xl shadow-slate-900/20"
+              >
+                <User className="w-5 h-5" />
+                Mon profil
+              </button>
+              <button 
+                onClick={() => handleTabChange('support')} 
+                className="px-8 py-4 bg-white text-slate-900 border-2 border-slate-200 font-bold rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2"
+              >
+                <LifeBuoy className="w-5 h-5" />
+                Contacter le Support
+              </button>
+            </div>
           </div>
-        </main>
-      )}
+        ) : (
+          children
+        )}
+      </main>
     </div>
   );
 }

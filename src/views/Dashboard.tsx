@@ -433,10 +433,11 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (view: string, 
     }
   };
 
-  if (loading) {
+  if (loading && !stats.revenue && !stats.totalSpent) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-xl" />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Initialisation du Dashboard...</p>
       </div>
     );
   }

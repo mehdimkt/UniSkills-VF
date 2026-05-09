@@ -227,7 +227,7 @@ export default function Orders({ onNavigate }: { onNavigate?: (view: string, con
 
   const fetchData = async () => {
     if (!user) return;
-    setLoading(true);
+    if (orders.length === 0) setLoading(true);
     try {
       const buyerOrSeller = isAideur ? 'seller_id' : 'buyer_id';
       const { data: ordersData, error: ordersError } = await supabase
@@ -634,6 +634,10 @@ export default function Orders({ onNavigate }: { onNavigate?: (view: string, con
         .select('buyer_id, amount, status')
         .eq('id', orderId)
         .single();
+      if (!order) {
+        alert('Commande non trouvée');
+        return;
+      }
       if (order.status !== 'pending') {
         alert('Seules les commandes en attente peuvent être annulées');
         return;
@@ -727,10 +731,11 @@ export default function Orders({ onNavigate }: { onNavigate?: (view: string, con
     return matchesSearch && matchesStatus;
   });
 
-  if (loading) {
+  if (loading && orders.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-xl shadow-primary/10" />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Chargement des commandes...</p>
       </div>
     );
   }
@@ -1188,8 +1193,8 @@ export default function Orders({ onNavigate }: { onNavigate?: (view: string, con
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-                  <span className="text-2xl font-black text-primary">{selectedOrder.price} UC</span>
-                  <button onClick={() => { startConversation(selectedOrder.otherUserId, selectedOrder.title); setSelectedOrder(null); }} className="px-5 py-2.5 bg-primary text-white font-black text-sm rounded-xl flex items-center justify-center gap-2">
+                  <span className="text-2xl font-black text-primary">{selectedOrder?.price} UC</span>
+                  <button onClick={() => { if(selectedOrder) { startConversation(selectedOrder.otherUserId, selectedOrder); setSelectedOrder(null); } }} className="px-5 py-2.5 bg-primary text-white font-black text-sm rounded-xl flex items-center justify-center gap-2">
                     <MessageSquare className="w-4 h-4" /> Contacter
                   </button>
                 </div>

@@ -1,7 +1,7 @@
 // src/lib/notifications.ts
 import { supabase } from './supabase';
 
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'order' | 'message' | 'proposal';
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'order' | 'message' | 'proposal' | 'profile';
 
 export const sendNotification = async (
   userId: string,

@@ -121,7 +121,7 @@ export default function Proposals({ onNavigate }: { onNavigate?: (view: string, 
 
   const fetchProposals = async () => {
     if (!user) return;
-    setLoading(true);
+    if (proposals.length === 0) setLoading(true);
 
     try {
       let receivedProposals: Proposal[] = [];
@@ -479,10 +479,11 @@ export default function Proposals({ onNavigate }: { onNavigate?: (view: string, 
     { id: 'sent', label: 'Envoyées', icon: Send, description: 'Propositions que vous avez envoyées' }
   ];
 
-  if (loading) {
+  if (loading && proposals.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-xl shadow-primary/10" />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Chargement des propositions...</p>
       </div>
     );
   }
@@ -877,7 +878,7 @@ export default function Proposals({ onNavigate }: { onNavigate?: (view: string, 
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => {
-                      startConversation(selectedProposal.otherUserId, selectedProposal.title);
+                      startConversation(selectedProposal.otherUserId, selectedProposal);
                       setSelectedProposal(null);
                     }}
                     className="flex-1 py-3 border-2 border-primary text-primary font-black rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
