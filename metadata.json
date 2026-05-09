@@ -1,0 +1,9 @@
+{
+  "name": "Uniskills - Marketplace Étudiante",
+  "description": "Une marketplace dédiée aux étudiants marocains pour échanger des talents, proposer des services et collaborer en toute sécurité.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}

@@ -1,0 +1,10 @@
+﻿{
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm install && pip install -r requirements.txt && npm run build"
+  },
+  "deploy": {
+    "startCommand": "npm run start",
+    "healthcheckPath": "/health"
+  }
+}
