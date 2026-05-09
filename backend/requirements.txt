@@ -1,0 +1,18 @@
+<<<<<<< HEAD
+# Créer requirements.txt
+@"
+Flask==2.3.3
+flask-cors==4.0.0
+supabase>=2.0.0
+python-dotenv>=1.0.0
+gunicorn==21.2.0
+=======
+# Créer requirements.txt
+@"
+Flask==2.3.3
+flask-cors==4.0.0
+supabase>=2.0.0
+python-dotenv>=1.0.0
+gunicorn==21.2.0
+>>>>>>> b641e086b05dd9f877da67a0b9c1e6b34cfc1040
+"@ | Out-File -FilePath requirements.txt -Encoding utf8

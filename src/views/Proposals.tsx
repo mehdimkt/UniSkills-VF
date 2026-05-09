@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { sendNotification } from '../lib/notifications';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 interface ProposalFile {
   name: string;
@@ -263,7 +264,7 @@ export default function Proposals({ onNavigate }: { onNavigate?: (view: string, 
       }
 
       // Appel au backend pour bloquer les fonds en toute sécurité
-      const response = await fetch('http://127.0.0.1:5051/api/hold-funds', {
+      const response = await fetch(`${API_URL}/api/hold-funds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

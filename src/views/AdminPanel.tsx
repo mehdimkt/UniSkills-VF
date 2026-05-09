@@ -70,6 +70,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { sendNotification } from '../lib/notifications';
 import { cn } from '../lib/utils';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 // --- Types ---
 type AdminModule = 'users' | 'disputes' | 'unicoins' | 'messages' | 'dashboard' | 'settings' | 'moderations';
@@ -180,13 +181,13 @@ const AdminCategories = () => {
     
     try {
       if (isEdit) {
-        await fetch(`/api/admin/categories/${payload.id}`, {
+        await fetch(`${API_URL}/api/admin/categories/${payload.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: payload.name, icon: payload.icon, color: payload.color, is_active: payload.is_active })
         });
       } else {
-        await fetch(`/api/admin/categories`, {
+        await fetch(`${API_URL}/api/admin/categories`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...payload, order_index: categories.length })
@@ -204,7 +205,7 @@ const AdminCategories = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer cette catégorie ?')) return;
     try {
-      await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
+      await fetch(`${API_URL}/api/admin/categories/${id}`, { method: 'DELETE' });
       fetchCategories();
     } catch (e) {
       alert("Erreur réseau");
@@ -213,7 +214,7 @@ const AdminCategories = () => {
 
   const toggleStatus = async (cat: any) => {
     try {
-      await fetch(`/api/admin/categories/${cat.id}`, {
+      await fetch(`${API_URL}/api/admin/categories/${cat.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !cat.is_active })
@@ -253,7 +254,7 @@ const AdminCategories = () => {
       // Pour éviter de saturer l'API, on pourrait faire un bulk update.
       // On met à jour chaque catégorie avec son nouvel index.
       for (let i = 0; i < categories.length; i++) {
-        await fetch(`/api/admin/categories/${categories[i].id}`, {
+        await fetch(`${API_URL}/api/admin/categories/${categories[i].id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ order_index: i })
@@ -482,7 +483,7 @@ const AdminUsers = () => {
     e.preventDefault();
     setCreatingAdmin(true);
     try {
-      const res = await fetch('/api/admin/create-admin', {
+      const res = await fetch(`${API_URL}/api/admin/create-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...adminForm, admin_id: user?.id })
@@ -514,7 +515,7 @@ const AdminUsers = () => {
     }
 
     try {
-      const res = await fetch(`/api/admin/users/${userId}/suspend`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/suspend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ suspended, reason, admin_id: user?.id })
@@ -538,7 +539,7 @@ const AdminUsers = () => {
     if (banned) {
       if (!confirm('BANNISSEMENT : Confirmez-vous le bannissement définitif de ce compte ? Le profil sera anonymisé, ses annonces supprimées et son portefeuille confisqué.')) return;
       try {
-        const res = await fetch(`/api/admin/users/${userId}/ban`, {
+        const res = await fetch(`${API_URL}/api/admin/users/${userId}/ban`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ admin_id: user?.id })
@@ -551,7 +552,7 @@ const AdminUsers = () => {
     } else {
       if (!confirm('Débannir cet utilisateur ?')) return;
       try {
-        const res = await fetch(`/api/admin/users/${userId}/unban`, {
+        const res = await fetch(`${API_URL}/api/admin/users/${userId}/unban`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ admin_id: user?.id })
@@ -2032,7 +2033,7 @@ const AdminSystem = () => {
 
   const fetchHealth = async () => {
     try {
-      const res = await fetch('http://localhost:5051/api/health');
+      const res = await fetch(`${API_URL}/api/health`);
       const data = await res.json();
       setHealth(data);
     } catch (e) { console.error('Failed to fetch health'); }
