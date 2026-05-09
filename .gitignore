@@ -10,3 +10,9 @@ storage/
 =======
 storage/
 >>>>>>> b641e086b05dd9f877da67a0b9c1e6b34cfc1040
+
+# Python files ignored
+
+requirements.txt
+
+*.py
