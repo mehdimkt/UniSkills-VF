@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { sendNotification } from '../lib/notifications';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 type OrderStatus =
   | 'pending'
@@ -413,7 +414,7 @@ export default function Orders({ onNavigate }: { onNavigate?: (view: string, con
   const handleRefuseOrder = async (order: OrderItem) => {
     if (!confirm('Refuser cette commande ? Les fonds seront remboursés.')) return;
     try {
-      const response = await fetch('http://127.0.0.1:5051/api/refund-funds', {
+      const response = await fetch(`${API_URL}/api/refund-funds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -532,7 +533,7 @@ export default function Orders({ onNavigate }: { onNavigate?: (view: string, con
 
       const orderTitle = (orderData.service as any)?.title || (orderData.lead as any)?.title || 'Commande';
 
-      const response = await fetch('http://127.0.0.1:5051/api/release-funds', {
+      const response = await fetch(`${API_URL}/api/release-funds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -642,7 +643,7 @@ export default function Orders({ onNavigate }: { onNavigate?: (view: string, con
         alert('Seules les commandes en attente peuvent être annulées');
         return;
       }
-      const response = await fetch('http://127.0.0.1:5051/api/refund-funds', {
+      const response = await fetch(`${API_URL}/api/refund-funds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
